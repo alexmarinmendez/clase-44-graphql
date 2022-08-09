@@ -1,35 +1,25 @@
 import express from 'express'
-import { graphqlHTTP } from 'express-graphql'
-import { buildSchema } from 'graphql'
-import reminder from './Reminders.js'
+import { ApolloServer } from 'apollo-server-express'
+import typeDefs from './typeDefs.js'
+import resolvers from './resolvers.js'
+
+import connectDB from './db.js'
 
 const app = express()
-const schema = buildSchema(`
-    type Reminder {
-        id: Int
-        title: String
-        description: String
-        status: String
-    }
-    type Query {
-        reminders: [Reminder]
-    }
-    type Mutation {
-        createReminder(title:String, description:String): Reminder
-        deleteReminders: [Reminder]
-        completeReminder(id: Int): Reminder
-    }
-`)
+connectDB()
 
-app.use('/graphql', graphqlHTTP({
-    schema,
-    rootValue: {
-        reminders: () => reminder.getReminders(),
-        createReminder: (data) => reminder.createReminder(data),
-        deleteReminders: () => reminder.deleteReminders(),
-        completeReminder: (data) => reminder.completeReminder(data)
-    },
-    graphiql: true
-}))
+async function start () {
+    const apolloServer = new ApolloServer({
+        typeDefs,
+        resolvers
+    })
 
-app.listen(8080, ()=> console.log("Server up"))
+    await apolloServer.start()
+    // apolloServer.applyMiddleware({app: app})
+    apolloServer.applyMiddleware({app})
+
+    app.listen(8080, ()=> console.log("Server up"))
+
+}
+
+start()
