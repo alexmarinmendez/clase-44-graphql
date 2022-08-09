@@ -1,50 +1,35 @@
 import express from 'express'
 import { graphqlHTTP } from 'express-graphql'
 import { buildSchema } from 'graphql'
+import reminder from './Reminders.js'
 
 const app = express()
-const server = app.listen(8080, () => console.log("Server Up"))
-
-let clients = []
-let counter = 1
-
-let schema = buildSchema(`
-    type Client {
+const schema = buildSchema(`
+    type Reminder {
         id: Int
-        name: String
-        phone: String
+        title: String
+        description: String
+        status: String
     }
     type Query {
-        clients: [Client]
-        clientById(id:Int): Client
+        reminders: [Reminder]
     }
     type Mutation {
-        addClient(name:String, phone:String):Client
+        createReminder(title:String, description:String): Reminder
+        deleteReminders: [Reminder]
+        completeReminder(id: Int): Reminder
     }
 `)
 
-const root = {
-    clients: () => clients,
-    clientById: (data) => {
-        for (let i=0; i<clients.length; i++) {
-            if (clients[i].id ===data.id) return clients[i]
-        }
-        return null
-    },
-    addClient: (data) => {
-        let client = {
-            'id': counter,
-            'name': data.name,
-            'phone': data.phone
-        }
-        clients.push(client)
-        counter++
-        return client
-    }
-}
-
 app.use('/graphql', graphqlHTTP({
-    schema: schema,
-    rootValue: root,
+    schema,
+    rootValue: {
+        reminders: () => reminder.getReminders(),
+        createReminder: (data) => reminder.createReminder(data),
+        deleteReminders: () => reminder.deleteReminders(),
+        completeReminder: (data) => reminder.completeReminder(data)
+    },
     graphiql: true
 }))
+
+app.listen(8080, ()=> console.log("Server up"))
